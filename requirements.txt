@@ -1,0 +1,9 @@
+fastapi
+pillow
+requests
+streamlit
+torch
+torchvision
+tqdm
+transformers
+uvicorn
