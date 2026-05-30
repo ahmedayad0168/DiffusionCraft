@@ -48,28 +48,23 @@ the matching caption.
 
 ```text
 app/
-  __init__.py
   main.py          FastAPI app and /generate endpoint
   frontend.py      Streamlit UI
 
 src/
-  __init__.py
   train.py         Conditional UNet training script
   train_vae.py     VAE training script
 
   data/
-    __init__.py
     dataset.py     Loads image/caption pairs
     laion-art_img/ Example .jpg/.txt training data
 
   models/
-    __init__.py
     clip.py        CLIP text encoder wrapper
     unet.py        Conditional UNet with cross-attention
     vae.py         VAE encoder and decoder
 
   pipeline/
-    __init__.py
     scheduler.py   DDPM noise scheduler
 ```
 
