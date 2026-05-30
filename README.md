@@ -279,27 +279,6 @@ Streamlit usually opens:
 http://localhost:8501
 ```
 
-## Generate LinkedIn Assets
-
-The helper script creates sample images and a showcase card in
-`outputs/linkedin/`:
-
-```bash
-python scripts/generate_linkedin_assets.py
-```
-
-Generated files include:
-
-```text
-outputs/linkedin/sample_01.png
-outputs/linkedin/sample_02.png
-outputs/linkedin/sample_03.png
-outputs/linkedin/linkedin_showcase.png
-```
-
-Use `linkedin_showcase.png` as a post image, and attach the sample images as
-extra project screenshots.
-
 ## Verification
 
 Useful checks:

@@ -2,44 +2,52 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class ResNetBlock(nn.Module):
+
+class ResBlock(nn.Module):
     def __init__(self, channels):
         super().__init__()
-        self.conv1 = nn.Conv2d(channels, channels, 3, padding=1)
-        self.norm1 = nn.GroupNorm(8, channels)
-        self.conv2 = nn.Conv2d(channels, channels, 3, padding=1)
-        self.norm2 = nn.GroupNorm(8, channels)
+        self.net = nn.Sequential(
+            nn.GroupNorm(8, channels),
+            nn.SiLU(),
+            nn.Conv2d(channels, channels, 3, padding=1),
+            nn.GroupNorm(8, channels),
+            nn.SiLU(),
+            nn.Conv2d(channels, channels, 3, padding=1),
+        )
 
     def forward(self, x):
-        residual = x
-        x = F.silu(self.norm1(self.conv1(x)))
-        x = self.norm2(self.conv2(x))
-        return F.silu(x + residual)
+        return x + self.net(x)  # pre-norm residual — stable gradients
 
 
 class VAE(nn.Module):
     def __init__(self, in_channels=3, latent_channels=4):
         super().__init__()
-        # Encoder: 128 -> 64 -> 32 -> 16
+
+        # Encoder: 128 -> 64 -> 32 -> 16, outputs mean+logvar (latent_channels*2)
         self.encoder = nn.Sequential(
-            nn.Conv2d(in_channels, 64, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=1),
-            ResNetBlock(256),
-            nn.Conv2d(256, latent_channels * 2, kernel_size=3, padding=1)
+            nn.Conv2d(in_channels, 64, 4, stride=2, padding=1),   # 64
+            nn.SiLU(),
+            nn.Conv2d(64, 128, 4, stride=2, padding=1),            # 32
+            nn.SiLU(),
+            nn.Conv2d(128, 256, 4, stride=2, padding=1),           # 16
+            nn.SiLU(),     
+            ResBlock(256),
+            nn.GroupNorm(8, 256),
+            nn.SiLU(),
+            nn.Conv2d(256, latent_channels * 2, 3, padding=1),    # outputs mean & logvar
         )
+
         # Decoder: 16 -> 32 -> 64 -> 128
         self.decoder = nn.Sequential(
-            nn.Conv2d(latent_channels, 256, kernel_size=3, padding=1),
-            ResNetBlock(256),
-            nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-            nn.ConvTranspose2d(64, in_channels, kernel_size=4, stride=2, padding=1),
-            nn.Tanh()
+            nn.Conv2d(latent_channels, 256, 3, padding=1),
+            nn.SiLU(),
+            ResBlock(256),
+            nn.ConvTranspose2d(256, 128, 4, stride=2, padding=1),  # 32
+            nn.SiLU(),
+            nn.ConvTranspose2d(128, 64, 4, stride=2, padding=1),   # 64
+            nn.SiLU(),
+            nn.ConvTranspose2d(64, in_channels, 4, stride=2, padding=1),  # 128
+            nn.Tanh(),  # output in [-1,1], matches normalized input
         )
 
     def encode(self, x):
